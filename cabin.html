@@ -1,62 +1,64 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<title>Cabin</title>
-<link rel="icon" href="http://www.geocities.ws/closetphone/icon.ico" type="image/x-icon"><link type="text/css" rel="stylesheet" id="dark-mode-custom-link">
-<link type="text/css" rel="stylesheet" id="dark-mode-general-link">
-<style lang="en" type="text/css" id="dark-mode-custom-style"></style>
-<style lang="en" type="text/css" id="dark-mode-native-style"></style>
-<style lang="en" type="text/css" id="dark-mode-native-sheet"></style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Cabin</title>
+    <link rel="icon" href="/assets/icon/icon.ico" type="image/x-icon">
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-F259QQFX68"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
 
-  gtag('config', 'G-F259QQFX68');
+    function gtag() {
+        dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-F259QQFX68');
 </script>
 <body bgcolor="#000000">
 <div class="fullscreen-bg">
-    <video loop="" muted="muted" autoplay="autoplay" poster="http://www.geocities.ws/closetphone/IMG_2924.JPG" class="fullscreen-bg__video">
-        <source src="https://www.closetphone.com/cabin.mp4" type="video/mp4">
+    <video loop="" muted="muted" autoplay="autoplay" poster="/assets/images/IMG_2924.JPG"
+           class="fullscreen-bg__video">
+        <source src="/assets/video/cabin.mp4" type="video/mp4">
     </video>
 </div>
 <style media="screen" type="text/css">
-.fullscreen-bg {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    overflow: hidden;
-    z-index: -100;
-}
-
-.fullscreen-bg__video {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: auto;
-    height: auto;
-    min-width: 85%;
-    min-height: 85%;
-    -webkit-transform: translate(-50%, -50%);
-       -moz-transform: translate(-50%, -50%);
-        -ms-transform: translate(-50%, -50%);
-        transform: translate(-50%, -50%);
-}
-
-@media (max-width: 767px) {
     .fullscreen-bg {
-        background: url("http://www.geocities.ws/closetphone/IMG_2924.JPG") center center / cover no-repeat;
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        overflow: hidden;
+        z-index: -100;
     }
 
     .fullscreen-bg__video {
-        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: auto;
+        height: auto;
+        min-width: 85%;
+        min-height: 85%;
+        -webkit-transform: translate(-50%, -50%);
+        -moz-transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
     }
-}
+
+    @media (max-width: 767px) {
+        .fullscreen-bg {
+            background: url("/assets/images/IMG_2924.JPG") center center / cover no-repeat;
+        }
+
+        .fullscreen-bg__video {
+            display: none;
+        }
+    }
 </style>
 </body>
 </html>
