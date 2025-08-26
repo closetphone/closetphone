@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>INDEX</title>
+    <title>Cabin</title>
     <style>
         html, body {
             height: 100%;
@@ -56,21 +56,21 @@
         }
 
         /* Optional: show a subtle "tap to start" cursor affordance */
-        .clickable {
-            cursor: pointer;
-        }
+        /*.clickable {*/
+        /*    cursor: pointer;*/
+        /*}*/
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 <div id="stage" class="clickable" aria-label="Tap or click to play">
     <!-- Inline SVG Bloom + Glow Filter Definition -->
     <svg width="0" height="0" style="position:absolute">
         <defs>
             <filter id="bloom-filter" x="-20%" y="-20%" width="140%" height="140%">
                 <!-- Bloom (soft, small radius) -->
-                <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="bloom"/>
+                <feGaussianBlur in="SourceGraphic" stdDeviation="0" result="bloom"/>
                 <!-- Glow (stronger, larger radius + slight brighten) -->
-                <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="glow"/>
+                <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="glow"/>
                 <feComponentTransfer in="glow" result="glowBright">
                     <feFuncR type="linear" slope="1.25"/>
                     <feFuncG type="linear" slope="1.25"/>
@@ -141,14 +141,14 @@
             if (videoEl) return videoEl;
             videoEl = document.createElement('video');
             videoEl.id = 'video';
-            videoEl.playsInline = true; // iOS inline playback
-            videoEl.muted = true;       // keep muted for autoplay compliance
-            videoEl.autoplay = true;    // we will call play() explicitly
-            videoEl.loop = true;        // loop forever
+            videoEl.playsInline = true;
+            videoEl.muted = false;
+            videoEl.autoplay = true;
+            videoEl.loop = true;
             videoEl.preload = 'metadata';
             videoEl.controls = false;
             videoEl.setAttribute('webkit-playsinline', '');
-            videoEl.setAttribute('x-webkit-airplay', 'allow');
+            videoEl.setAttribute('x-webkit-airplay', 'deny');
             stage.appendChild(videoEl);
             return videoEl;
         }
