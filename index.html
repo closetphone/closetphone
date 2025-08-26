@@ -1,48 +1,320 @@
 <!DOCTYPE html>
-<!--Updated 11/16/2024-->
 <html lang="en">
-<link rel="icon" href="/assets/icon/welcome.ico" type="image/x-icon"/>
-<!--playlist?list=PLlsRYSs5TIRYSuTiEulL0vz0NMyOcEvjJ-->
-<title>Message</title>
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F259QQFX68"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-
-        function gtag() {
-            dataLayer.push(arguments);
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>INDEX</title>
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
         }
 
-        gtag('js', new Date());
-
-        gtag('config', 'G-F259QQFX68');
-    </script>
-    <link rel="canonical" href="closetphone.com"/>
-    <style type="text/css" media="screen">
-        body {
-            background-color: rgb(0, 0, 0);
-            background-image: url("/assets/images/next.png");
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            background-position: center;
-            background-size: 100%;
+        #stage {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            /* Add padding so full image/video is visible inside the viewport */
+            padding: 2vmin;
+            padding-top: calc(2vmin + env(safe-area-inset-top));
+            padding-right: calc(2vmin + env(safe-area-inset-right));
+            padding-bottom: calc(2vmin + env(safe-area-inset-bottom));
+            padding-left: calc(2vmin + env(safe-area-inset-left));
+            box-sizing: border-box;
+            /* Apply bloom filter */
+            filter: url(#bloom-filter);
         }
 
-        #first-picture {
-            left: 70%;
-            top: 70%;
+        #poster, #video {
             position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* ensure full media is visible, letterbox as needed */
+            object-position: center center;
+            display: block;
+            background: #000;
+            transition: opacity 250ms ease-in-out; /* fade between poster and video */
+        }
+
+        /* Ensure poster sits above the video until removed; start with video hidden */
+        #video {
+            z-index: 1;
+            opacity: 0;
+        }
+
+        #poster {
+            z-index: 2;
+            opacity: 1;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* Optional: show a subtle "tap to start" cursor affordance */
+        .clickable {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-<div id="first-picture">
-    <a href="cabin.html">
-        <img src="/assets/images/clock.png" alt="clock">
-        </img>
-    </a>
+<div id="stage" class="clickable" aria-label="Tap or click to play">
+    <!-- Inline SVG Bloom + Glow Filter Definition -->
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <filter id="bloom-filter" x="-20%" y="-20%" width="140%" height="140%">
+                <!-- Bloom (soft, small radius) -->
+                <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="bloom"/>
+                <!-- Glow (stronger, larger radius + slight brighten) -->
+                <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="glow"/>
+                <feComponentTransfer in="glow" result="glowBright">
+                    <feFuncR type="linear" slope="1.25"/>
+                    <feFuncG type="linear" slope="1.25"/>
+                    <feFuncB type="linear" slope="1.25"/>
+                </feComponentTransfer>
+                <!-- Blend chain: Source -> bloom -> glow -->
+                <feBlend in="SourceGraphic" in2="bloom" mode="screen" result="bloomed"/>
+                <feBlend in="bloomed" in2="glowBright" mode="screen" result="bloomGlow"/>
+                <feComposite in="bloomGlow" in2="SourceGraphic" operator="over"/>
+            </filter>
+        </defs>
+    </svg>
 </div>
-</div>
+<script>
+    (function () {
+        const VIDEO_SOURCES = {
+            ultrawide: 'assets/video/closetp-tv21x9.mp4', // ~21:9
+            landscape: 'assets/video/closetp-tv-16x9.mp4', // ~16:9
+            portrait: 'assets/video/closetp-tvmobile.mp4' // ~9:16
+        };
+        const POSTER_IMAGES = {
+            ultrawide: 'assets/images/mainpage-checkpoint3-21x9.png',
+            landscape: 'assets/images/mainpage-checkpoint3-16x9.png',
+            portrait: 'assets/images/mainpage-checkpoint3-9x16mobile.png'
+        };
+        const INTRO_SOUND = 'assets/audio/closetp-tvsound.wav';
+
+        const stage = document.getElementById('stage');
+        let posterImg = null;
+        let videoEl = null;
+        let audioEl = null;
+        let playing = false; // becomes true when video is actually playing
+        let started = false; // prevents double start
+
+        function pickVariant(w, h) {
+            if (h === 0 || w === 0) return 'landscape';
+            if (w < h) return 'portrait';
+            const ar = w / h; // >= 1 here
+            // Midpoint between 16:9 (~1.78) and 21:9 (~2.33) ≈ 2.05
+            if (ar >= 2.05) return 'ultrawide';
+            return 'landscape';
+        }
+
+        function ensurePoster() {
+            if (!posterImg) {
+                posterImg = new Image();
+                posterImg.id = 'poster';
+                posterImg.alt = '';
+                posterImg.decoding = 'async';
+                posterImg.referrerPolicy = 'no-referrer';
+                stage.appendChild(posterImg);
+            }
+        }
+
+        function setPosterForCurrentViewport() {
+            const variant = pickVariant(window.innerWidth, window.innerHeight);
+            ensurePoster();
+            const src = POSTER_IMAGES[variant];
+            if (posterImg.getAttribute('src') !== src) {
+                posterImg.src = src;
+            }
+            // Ensure poster is visible during idle and intro sound
+            posterImg.style.opacity = '1';
+            posterImg.style.pointerEvents = 'auto';
+        }
+
+        function createVideoIfNeeded() {
+            if (videoEl) return videoEl;
+            videoEl = document.createElement('video');
+            videoEl.id = 'video';
+            videoEl.playsInline = true; // iOS inline playback
+            videoEl.muted = true;       // keep muted for autoplay compliance
+            videoEl.autoplay = true;    // we will call play() explicitly
+            videoEl.loop = true;        // loop forever
+            videoEl.preload = 'metadata';
+            videoEl.controls = false;
+            videoEl.setAttribute('webkit-playsinline', '');
+            videoEl.setAttribute('x-webkit-airplay', 'allow');
+            stage.appendChild(videoEl);
+            return videoEl;
+        }
+
+        function setVideoSourceForCurrentViewport() {
+            const variant = pickVariant(window.innerWidth, window.innerHeight);
+            const src = VIDEO_SOURCES[variant];
+            const v = createVideoIfNeeded();
+            if (v.getAttribute('src') !== src) {
+                v.src = src;
+            }
+            v.loop = true; // ensure loop even if recreated
+            return v;
+        }
+
+        function createAudioIfNeeded() {
+            if (audioEl) return audioEl;
+            audioEl = new Audio();
+            audioEl.src = INTRO_SOUND;
+            audioEl.preload = 'auto';
+            audioEl.crossOrigin = 'anonymous';
+            return audioEl;
+        }
+
+        function startVideoPlaybackWithFade() {
+            const v = setVideoSourceForCurrentViewport();
+            // Fade in video immediately, but keep poster visible until video is actually playing for a smooth transition
+            v.style.opacity = '1';
+
+            const onPlay = () => {
+                playing = true;
+                v.removeEventListener('playing', onPlay);
+                // Now fade out poster, remove after transition ends
+                if (posterImg) {
+                    const onFadeDone = () => {
+                        if (posterImg && posterImg.parentNode) posterImg.remove();
+                        posterImg && posterImg.removeEventListener('transitionend', onFadeDone);
+                        posterImg = null;
+                    };
+                    posterImg.addEventListener('transitionend', onFadeDone);
+                    // Prevent blocking interactions during fade
+                    posterImg.style.pointerEvents = 'none';
+                    // Trigger fade
+                    requestAnimationFrame(() => {
+                        posterImg && (posterImg.style.opacity = '0');
+                    });
+                }
+            };
+            v.addEventListener('playing', onPlay);
+
+            const p = v.play();
+            if (p && typeof p.catch === 'function') {
+                p.catch(() => {
+                    // If autoplay still blocked, allow user to try again
+                    stage.classList.add('clickable');
+                    started = false;
+                    attachStartListeners();
+                });
+            }
+        }
+
+        function startSequence() {
+            if (started) return;
+            started = true;
+            stage.classList.remove('clickable');
+
+            // Play intro sound first; when it ends, start video
+            const a = createAudioIfNeeded();
+            // Ensure poster is visible during audio playback
+            setPosterForCurrentViewport();
+
+            const playPromise = a.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {
+                    // If audio fails (e.g., user agent restrictions), skip to video
+                    startVideoPlaybackWithFade();
+                });
+            }
+
+            const onAudioEnded = () => {
+                a.removeEventListener('ended', onAudioEnded);
+                startVideoPlaybackWithFade();
+            };
+            a.addEventListener('ended', onAudioEnded);
+        }
+
+        function attachStartListeners() {
+            document.addEventListener('click', onUserStart, {once: true});
+            document.addEventListener('keydown', onKeyStart);
+        }
+
+        // Start sequence on first user interaction
+        const onUserStart = () => {
+            document.removeEventListener('click', onUserStart);
+            document.removeEventListener('keydown', onKeyStart);
+            startSequence();
+        };
+        const onKeyStart = (e) => {
+            if (e.code === 'Enter' || e.code === 'Space') {
+                e.preventDefault();
+                onUserStart();
+            }
+        };
+
+        // Initialize poster based on current viewport
+        setPosterForCurrentViewport();
+        attachStartListeners();
+
+        // Update poster on resize (only if video not yet playing)
+        let resizeRaf = 0;
+        window.addEventListener('resize', () => {
+            if (playing) return;
+            if (resizeRaf) cancelAnimationFrame(resizeRaf);
+            resizeRaf = requestAnimationFrame(() => {
+                setPosterForCurrentViewport();
+            });
+        });
+
+        function addPreloadHints() {
+            const head = document.head || document.getElementsByTagName('head')[0];
+            Object.values(POSTER_IMAGES).forEach((href) => {
+                const link = document.createElement('link');
+                link.rel = 'preload';
+                link.as = 'image';
+                link.href = href;
+                head.appendChild(link);
+            });
+            Object.values(VIDEO_SOURCES).forEach((href) => {
+                const link = document.createElement('link');
+                link.rel = 'preload';
+                link.as = 'video';
+                link.href = href;
+                head.appendChild(link);
+            });
+            const audioLink = document.createElement('link');
+            audioLink.rel = 'preload';
+            audioLink.as = 'audio';
+            audioLink.href = INTRO_SOUND;
+            head.appendChild(audioLink);
+        }
+
+        function preloadAssets() {
+            // Images
+            Object.values(POSTER_IMAGES).forEach((src) => {
+                const img = new Image();
+                img.decoding = 'async';
+                img.src = src;
+            });
+            // Videos (off-DOM)
+            Object.values(VIDEO_SOURCES).forEach((src) => {
+                const v = document.createElement('video');
+                v.preload = 'metadata';
+                v.src = src;
+                v.load();
+            });
+            // Audio
+            const a = new Audio();
+            a.src = INTRO_SOUND;
+            a.preload = 'auto';
+            a.load();
+        }
+
+        // Kick off preloading before initial UI
+        addPreloadHints();
+        preloadAssets();
+    })();
+</script>
 </body>
 </html>
