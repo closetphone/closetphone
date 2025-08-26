@@ -55,10 +55,10 @@
             -webkit-user-drag: none;
         }
 
-        /* Optional: show a subtle "tap to start" cursor affordance */
-        /*.clickable {*/
-        /*    cursor: pointer;*/
-        /*}*/
+        /*Optional: show a subtle "tap to start" cursor affordance */
+        .clickable {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -96,7 +96,8 @@
             landscape: 'assets/images/mainpage-checkpoint3-16x9.png',
             portrait: 'assets/images/mainpage-checkpoint3-9x16mobile.png'
         };
-        const INTRO_SOUND = 'assets/audio/closetp-tvsound.wav';
+        // Use new intro sound per request
+        const INTRO_SOUND = 'assets/audio/housepet.mp3';
 
         const stage = document.getElementById('stage');
         let posterImg = null;
@@ -215,24 +216,21 @@
             started = true;
             stage.classList.remove('clickable');
 
-            // Play intro sound first; when it ends, start video
+            // Play sound immediately on user interaction
             const a = createAudioIfNeeded();
-            // Ensure poster is visible during audio playback
             setPosterForCurrentViewport();
 
             const playPromise = a.play();
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(() => {
-                    // If audio fails (e.g., user agent restrictions), skip to video
-                    startVideoPlaybackWithFade();
+                    // If audio fails (e.g., user agent restrictions), continue with video after delay anyway
                 });
             }
 
-            const onAudioEnded = () => {
-                a.removeEventListener('ended', onAudioEnded);
+            // Start video after a fixed 1 second delay, in parallel with the audio
+            setTimeout(() => {
                 startVideoPlaybackWithFade();
-            };
-            a.addEventListener('ended', onAudioEnded);
+            }, 1000);
         }
 
         function attachStartListeners() {
