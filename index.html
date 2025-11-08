@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Cabin</title>
     <style>
+        @font-face {
+            font-family: 'VCR OSD Mono';
+            src: url('assets/font/VCR_OSD_MONO_1.001.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
         html, body {
             height: 100%;
             width: 100%;
@@ -66,7 +73,7 @@
             left: 50%;
             transform: translateX(-50%);
             color: #0a0a0a;
-            font-family: monospace;
+            font-family: 'VCR OSD Mono', monospace;
             font-size: clamp(1.5rem, 8vw, 4rem);
             z-index: 100;
             pointer-events: none;
@@ -74,6 +81,46 @@
             opacity: 0;
             transition: opacity 5s linear;
             will-change: opacity;
+            animation: vcr-static 0.08s infinite;
+        }
+
+        @keyframes vcr-static {
+            0% {
+                text-shadow: 
+                    4px 0 0 rgba(10, 10, 10, 0.7),
+                    -4px 0 0 rgba(10, 10, 10, 0.7);
+                transform: translateX(-50%) translateX(2px);
+            }
+            20% {
+                text-shadow: 
+                    -5px 0 0 rgba(10, 10, 10, 0.7),
+                    5px 0 0 rgba(10, 10, 10, 0.7);
+                transform: translateX(-50%) translateX(-1px);
+            }
+            40% {
+                text-shadow: 
+                    3px 0 0 rgba(10, 10, 10, 0.7),
+                    -3px 0 0 rgba(10, 10, 10, 0.7);
+                transform: translateX(-50%) translateX(1px);
+            }
+            60% {
+                text-shadow: 
+                    -4px 0 0 rgba(10, 10, 10, 0.7),
+                    4px 0 0 rgba(10, 10, 10, 0.7);
+                transform: translateX(-50%) translateX(-2px);
+            }
+            80% {
+                text-shadow: 
+                    5px 0 0 rgba(10, 10, 10, 0.7),
+                    -5px 0 0 rgba(10, 10, 10, 0.7);
+                transform: translateX(-50%) translateX(1px);
+            }
+            100% {
+                text-shadow: 
+                    -3px 0 0 rgba(10, 10, 10, 0.7),
+                    3px 0 0 rgba(10, 10, 10, 0.7);
+                transform: translateX(-50%) translateX(-1px);
+            }
         }
     </style>
 </head>
