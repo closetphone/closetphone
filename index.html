@@ -59,9 +59,26 @@
         .clickable {
             cursor: pointer;
         }
+
+        #phone-number {
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0a0a0a;
+            font-family: monospace;
+            font-size: clamp(1.5rem, 8vw, 4rem);
+            z-index: 100;
+            pointer-events: none;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 5s linear;
+            will-change: opacity;
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
+<div id="phone-number">715-CLO-SETP</div>
 <div id="stage" class="clickable" aria-label="Tap or click to play">
     <!-- Inline SVG Bloom + Glow Filter Definition -->
     <svg width="0" height="0" style="position:absolute">
@@ -224,6 +241,21 @@
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(() => {
                     // If audio fails (e.g., user agent restrictions), continue with video after delay anyway
+                });
+            }
+
+            // Fade in phone number text over 5 seconds
+            const phoneNumber = document.getElementById('phone-number');
+            if (phoneNumber) {
+                // Ensure the element is in its initial state
+                phoneNumber.style.opacity = '0';
+                // Force browser to acknowledge the initial state
+                void phoneNumber.offsetWidth;
+                // Trigger the fade-in
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        phoneNumber.style.opacity = '1';
+                    });
                 });
             }
 
