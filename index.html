@@ -4,6 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Cabin</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F259QQFX68"></script>
+    <script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-F259QQFX68');
+</script>
     <style>
         @font-face {
             font-family: 'VCR OSD Mono';
@@ -160,7 +169,7 @@
             landscape: 'assets/images/mainpage-checkpoint3-16x9.png',
             portrait: 'assets/images/mainpage-checkpoint3-9x16mobile.png'
         };
-        // Use new intro sound per request
+        // Use new intro sound
         const INTRO_SOUND = 'assets/audio/housepet.mp3';
 
         const stage = document.getElementById('stage');
