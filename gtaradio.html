@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" href="/assets/icon/gtaradio.ico" type="image/x-icon">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radio Wheel</title>
@@ -90,6 +91,13 @@
     line-height: 1.2;
     cursor: pointer;
   }
+  .center-info .status-msg.loading{
+    animation: statusPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes statusPulse{
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
 
   .node{
     position: absolute;
@@ -113,6 +121,22 @@
     padding: 8px;
     transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
+  }
+  .node img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+    padding: 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .wheel-inner.icons-loaded .node img{
+    opacity: 1;
+  }
+  .node.active img{
+    padding: 12px;
   }
   .node:hover{
     color: var(--text);
@@ -223,7 +247,7 @@
     <div class="wheel-inner" id="wheelNodes">
       <div class="center-info" id="centerTrigger">
         <div class="station-name" id="centerStation">Radio Los Santos</div>
-        <div class="status-msg" id="centerStatus">Tuning Station...</div>
+        <div class="status-msg loading" id="centerStatus">Tuning Station...</div>
         <div class="node easter-node" id="mojaveNode">Mojave Radio</div>
       </div>
     </div>
@@ -269,6 +293,33 @@
   };
 
   const stations = Object.keys(stationTracks).filter(s => s !== "Mojave Radio");
+  const initialStation = stations[Math.floor(Math.random() * stations.length)];
+
+  const stationIcons = {
+    "Radio Los Santos": "assets/images/gta/radiolossantos.png",
+    "Space 103.2": "assets/images/gta/space.png",
+    "West Coast Classics": "assets/images/gta/westcoastclassics.png",
+    "Rebel Radio": "assets/images/gta/rebelradio.png",
+    "Los Santos Rock Radio": "assets/images/gta/lossantosrockradio.png",
+    "The Lowdown 91.1": "assets/images/gta/thelowdown.png",
+    "Blue Ark": "assets/images/gta/blueark.png",
+    "Non-Stop-Pop FM": "assets/images/gta/nonstoppop.png",
+    "East Los FM": "assets/images/gta/eastlosfm.png",
+    "WorldWide FM": "assets/images/gta/worldwidefm.png",
+    "Channel X": "assets/images/gta/channelx.png",
+    "Radio Mirror Park": "assets/images/gta/radiomirrorpark.png",
+    "Vinewood Boulevard Radio": "assets/images/gta/vinewoodboulevardradio.png",
+    "Soulwax FM": "assets/images/gta/soulwaxfm.png",
+    "FlyLo FM": "assets/images/gta/flylofm.png",
+    "The Lab": "assets/images/gta/thelab.png",
+    "blonded Los Santos 97.8 FM": "assets/images/gta/blonded.png",
+    "Los Santos Underground Radio": "assets/images/gta/lossantosundergroundradio.png",
+    "iFruit Radio": "assets/images/gta/ifruit.png",
+    "Kult FM 99.1": "assets/images/gta/kultfm.png",
+    "Still Slipping Los Santos": "assets/images/gta/stillslipping.png",
+    "Music Locker Radio": "assets/images/gta/musiclocker.png",
+    "MOTOMAMI Los Santos": "assets/images/gta/motomami.png"
+  };
 
   // ---------------------------------------------------------------
   // MATHEMATICAL CIRCLE ENGINE
@@ -284,14 +335,54 @@
     const y = 50 + radius * Math.sin(angle);
 
     const node = document.createElement('div');
-    node.className = 'node' + (i === 0 ? ' active' : '');
+    node.className = 'node' + (name === initialStation ? ' active' : '');
     node.style.left = x + '%';
     node.style.top = y + '%';
-    node.textContent = name;
+    if (stationIcons[name]) {
+      const img = document.createElement('img');
+      img.src = stationIcons[name];
+      img.alt = name;
+      node.appendChild(img);
+      node.title = name;
+    } else {
+      node.textContent = name;
+    }
     node.dataset.station = name;
     node.addEventListener('click', () => selectStation(name));
     wheelNodesEl.appendChild(node);
   });
+
+  document.getElementById('centerStation').textContent = initialStation;
+
+  // ---------------------------------------------------------------
+  // ICON PRELOADING
+  // ---------------------------------------------------------------
+  const iconUrls = Object.values(stationIcons);
+  let loadedCount = 0;
+  const totalIcons = iconUrls.length;
+
+  function onIconSettled(){
+    loadedCount++;
+    if (loadedCount >= totalIcons) {
+      wheelNodesEl.classList.add('icons-loaded');
+      const statusEl = document.getElementById('centerStatus');
+      statusEl.classList.remove('loading');
+      statusEl.textContent = isPlaying ? "Playing" : "Paused";
+    }
+  }
+
+  if (totalIcons === 0) {
+    wheelNodesEl.classList.add('icons-loaded');
+    document.getElementById('centerStatus').classList.remove('loading');
+    document.getElementById('centerStatus').textContent = isPlaying ? "Playing" : "Paused";
+  } else {
+    iconUrls.forEach(url => {
+      const img = new Image();
+      img.onload = onIconSettled;
+      img.onerror = onIconSettled;
+      img.src = url;
+    });
+  }
 
   // ---------------------------------------------------------------
   // EASTER EGG INTERACTION ENGINE
@@ -346,11 +437,10 @@
   document.body.appendChild(tag);
 
   function onYouTubeIframeAPIReady(){
-    const defaultStation = stations[0];
     player = new YT.Player('ytPlayer', {
       height: '100%',
       width: '100%',
-      videoId: stationTracks[defaultStation],
+      videoId: stationTracks[initialStation],
       playerVars: { 
         rel: 0,
         referrerPolicy: 'strict-origin-when-cross-origin'
