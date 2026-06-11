@@ -42,7 +42,7 @@
     gap: 32px;
   }
 
-  /* ---------------- FIXED WHEEL LAYOUT ---------------- */
+  /* ---------------- WHEEL LAYOUT ---------------- */
   .wheel-wrap{
     position: relative;
     width: 100%;
@@ -91,7 +91,6 @@
   .node{
     position: absolute;
     transform: translate(-50%, -50%);
-    /* Hardcoded uniform layout sizes prevent node warping */
     width: 74px;
     height: 74px;
     border-radius: 50%;
@@ -151,21 +150,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
   }
-  .ctrl-btn{
+  .ctrl-btn.primary{ 
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.3);
     color: var(--text);
-    width: 44px; height: 44px;
+    width: 54px; height: 54px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 18px;
     transition: all 0.15s ease;
   }
-  .ctrl-btn:hover{ border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
-  .ctrl-btn.primary{ width: 54px; height: 54px; font-size: 18px; border-color: rgba(255,255,255,0.3); }
+  .ctrl-btn.primary:hover{ border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
 
   .player-frame-wrap{
     position: relative;
@@ -198,9 +195,7 @@
 
   <div class="player">
     <div class="controls">
-      <button class="ctrl-btn" id="prevBtn" title="Previous Station">&#9664;&#9664;</button>
       <button class="ctrl-btn primary" id="playBtn" title="Play/Pause">&#9658;</button>
-      <button class="ctrl-btn" id="nextBtn" title="Next Station">&#9654;&#9654;</button>
     </div>
     <div class="player-frame-wrap">
       <div id="ytPlayer"></div>
@@ -210,11 +205,12 @@
 </div>
 
 <script>
+  // Simple key-value mapping of interface station name strings directly to the matching video layout from your playlist link
   const stationTracks = {
     "Radio Los Santos": "wK0mC56eI00",
     "Space 103.2": "VvW4rZ3r-x8",
     "West Coast Classics": "8p9jI9nCkiY",
-    "Rebel Radio": "6PLPmmfeNd4",
+    "Rebel Radio": "HeLsaX1I5B4",
     "Los Santos Rock Radio": "1f8eZ0oWp4E",
     "The Lowdown 91.1": "mMfxI3W_LyE",
     "Blue Ark": "g8H_K-fS_wM",
@@ -243,7 +239,7 @@
   // ---------------------------------------------------------------
   const wheelNodesEl = document.getElementById('wheelNodes');
   const n = stations.length;
-  const radius = 42; // Stable radial offset percentage
+  const radius = 42; 
 
   stations.forEach((name, i) => {
     const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
@@ -262,7 +258,7 @@
   });
 
   // ---------------------------------------------------------------
-  // PLAYER CONTROLS
+  // CORE SELECTION MECHANICS
   // ---------------------------------------------------------------
   let currentStationIndex = 0;
   let isPlaying = false;
@@ -276,7 +272,6 @@
     if(targetNode) targetNode.classList.add('active');
 
     document.getElementById('centerStation').textContent = name;
-    document.getElementById('centerStatus').textContent = "Playing";
 
     const videoId = stationTracks[name];
     if (player && player.loadVideoById && videoId) {
@@ -284,18 +279,8 @@
     }
   }
 
-  function nextStation() {
-    const nextIndex = (currentStationIndex + 1) % stations.length;
-    selectStation(stations[nextIndex], nextIndex);
-  }
-
-  function prevStation() {
-    const prevIndex = (currentStationIndex - 1 + stations.length) % stations.length;
-    selectStation(stations[prevIndex], prevIndex);
-  }
-
   // ---------------------------------------------------------------
-  // YOUTUBE TRACK LOADING FRAMEWORK
+  // YOUTUBE EMBED LOADING
   // ---------------------------------------------------------------
   const tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
@@ -331,8 +316,6 @@
     if (!player) return;
     if (isPlaying) player.pauseVideo(); else player.playVideo();
   });
-  document.getElementById('nextBtn').addEventListener('click', nextStation);
-  document.getElementById('prevBtn').addEventListener('click', prevStation);
 </script>
 
 </body>
