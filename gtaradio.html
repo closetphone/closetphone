@@ -224,6 +224,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 16px;
   }
   .ctrl-btn.primary{ 
     background: transparent;
@@ -237,6 +238,47 @@
     transition: all 0.15s ease;
   }
   .ctrl-btn.primary:hover{ border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+
+  .live-btn{
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: var(--node-text);
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+  }
+  .live-btn:hover{
+    border-color: rgba(255,255,255,0.5);
+    color: var(--text);
+    background: rgba(255,255,255,0.05);
+  }
+  .live-btn .dot{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: all 0.15s ease;
+  }
+  .live-btn.active{
+    color: var(--text);
+    border-color: #ff4444;
+    box-shadow: 0 0 14px rgba(255,68,68,0.4), inset 0 0 6px rgba(255,68,68,0.15);
+  }
+  .live-btn.active .dot{
+    background: #ff4444;
+    box-shadow: 0 0 8px #ff4444;
+  }
 
   .player-frame-wrap{
     position: relative;
@@ -273,6 +315,10 @@
   <div class="player">
     <div class="controls">
       <button class="ctrl-btn primary" id="playBtn" title="Play/Pause">&#9658;</button>
+      <button class="live-btn" id="liveBtn" title="Live mode: jump to a random point when changing stations">
+        <span class="dot"></span>
+        <span>Live Mode</span>
+      </button>
     </div>
     <div class="player-frame-wrap">
       <div id="ytPlayer"></div>
@@ -292,7 +338,7 @@
     "Blue Ark": "LRdjhqMYSGg",
     "Non-Stop-Pop FM": "Fjp0wu3lEHk",
     "East Los FM": "xTpsoTmhdNc",
-    "WorldWide FM": "xTpsoTmhdNc",
+    "WorldWide FM": "GgIB2WClkwY",
     "Channel X": "HHG44PJ0oyo",
     "Radio Mirror Park": "SDWHIACuuaQ",
     "Vinewood Boulevard Radio": "5fnGyUc2eFs",
@@ -431,6 +477,8 @@
   // CORE SELECTION MECHANICS
   // ---------------------------------------------------------------
   let isPlaying = false;
+  let liveMode = false;
+  let pendingLiveSeek = false;
   let player;
 
   function selectStation(name) {
@@ -443,6 +491,7 @@
     const videoId = stationTracks[name];
     if (player && player.loadVideoById && videoId) {
       player.loadVideoById(videoId);
+      pendingLiveSeek = liveMode;
     }
   }
 
@@ -468,7 +517,17 @@
   window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
   function onPlayerStateChange(e){
-    if (e.data === YT.PlayerState.PLAYING) setPlayingUI(true);
+    if (e.data === YT.PlayerState.PLAYING) {
+      setPlayingUI(true);
+      if (pendingLiveSeek && player && player.getDuration) {
+        const duration = player.getDuration();
+        if (duration && duration > 10) {
+          const randomTime = Math.random() * (duration - 10);
+          player.seekTo(randomTime, true);
+        }
+        pendingLiveSeek = false;
+      }
+    }
     else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) setPlayingUI(false);
   }
 
@@ -484,6 +543,11 @@
   document.getElementById('playBtn').addEventListener('click', () => {
     if (!player) return;
     if (isPlaying) player.pauseVideo(); else player.playVideo();
+  });
+
+  document.getElementById('liveBtn').addEventListener('click', () => {
+    liveMode = !liveMode;
+    document.getElementById('liveBtn').classList.toggle('active', liveMode);
   });
 </script>
 
