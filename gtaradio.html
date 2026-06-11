@@ -17,6 +17,7 @@
     --text: #f2f2f2;
     --panel: rgba(0,0,0,0.5);
     --panel-border: rgba(255,255,255,0.05);
+    --easter-glow: #ffaa44;
   }
 
   *{ box-sizing: border-box; margin:0; padding:0; }
@@ -61,13 +62,13 @@
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
-    width: 35%;
-    pointer-events: none;
+    width: 40%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 10;
+    user-select: none;
   }
   
   .center-info .station-name{
@@ -77,6 +78,7 @@
     text-transform: uppercase;
     line-height: 1.2;
     color: var(--text);
+    cursor: pointer;
   }
   .center-info .status-msg{
     font-size: clamp(0.7rem, 2vw, 0.85rem);
@@ -86,6 +88,7 @@
     text-transform: uppercase;
     margin-top: 4px;
     line-height: 1.2;
+    cursor: pointer;
   }
 
   .node{
@@ -126,12 +129,44 @@
     z-index: 6;
   }
 
+  /* ---------------- TRUE-CENTERED EASTER EGG ---------------- */
+  .node.easter-node {
+    position: absolute; /* Takes it completely out of normal flow when hidden */
+    top: 50%; 
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 12;
+  }
+  .node.easter-node:hover {
+    color: var(--text);
+    border-color: rgba(255,170,68,0.5);
+    background: rgba(255,170,68,0.08);
+  }
+  .node.easter-node.reveal {
+    opacity: 1;
+    pointer-events: auto;
+    /* Pushes it below the text block only when revealed */
+    top: calc(100% + 46px); 
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .node.easter-node.active {
+    color: var(--text);
+    background: rgba(255,170,68,0.1);
+    border: 2px solid var(--easter-glow);
+    box-shadow: 0 0 20px rgba(255,170,68,0.4), inset 0 0 8px rgba(255,170,68,0.2);
+  }
+
   @media (max-width: 640px) {
     .node { width: 62px; height: 62px; font-size: 7.5px; padding: 4px; }
+    .node.easter-node.reveal { top: calc(100% + 38px); }
   }
 
   @media (max-width: 480px) {
     .node { width: 52px; height: 52px; font-size: 6.5px; padding: 2px; }
+    .node.easter-node.reveal { top: calc(100% + 32px); }
   }
 
   /* ---------------- PLAYER ---------------- */
@@ -186,9 +221,10 @@
 
   <div class="wheel-wrap">
     <div class="wheel-inner" id="wheelNodes">
-      <div class="center-info">
+      <div class="center-info" id="centerTrigger">
         <div class="station-name" id="centerStation">Radio Los Santos</div>
         <div class="status-msg" id="centerStatus">Tuning Station...</div>
+        <div class="node easter-node" id="mojaveNode">Mojave Radio</div>
       </div>
     </div>
   </div>
@@ -205,34 +241,34 @@
 </div>
 
 <script>
-  // Simple key-value mapping of interface station name strings directly to the matching video layout from your playlist link
   const stationTracks = {
-    "Radio Los Santos": "wK0mC56eI00",
-    "Space 103.2": "VvW4rZ3r-x8",
-    "West Coast Classics": "8p9jI9nCkiY",
+    "Radio Los Santos": "C3_FSXZtRe8",
+    "Space 103.2": "6TnV43UWoqk",
+    "West Coast Classics": "z0Wf3IuZnf0",
     "Rebel Radio": "HeLsaX1I5B4",
     "Los Santos Rock Radio": "1f8eZ0oWp4E",
-    "The Lowdown 91.1": "mMfxI3W_LyE",
-    "Blue Ark": "g8H_K-fS_wM",
-    "Non-Stop-Pop FM": "elueA2rofoo",
+    "The Lowdown 91.1": "fZPV-9GlM-c",
+    "Blue Ark": "LRdjhqMYSGg",
+    "Non-Stop-Pop FM": "Fjp0wu3lEHk",
     "East Los FM": "ouP9Yz8TEBM",
-    "WorldWide FM": "dX3kIAgYZHY",
-    "Channel X": "cKDK5XnoaUk",
-    "Radio Mirror Park": "KutXyZfeFdY",
-    "Vinewood Boulevard Radio": "4p3sMLwkVIQ",
-    "Soulwax FM": "HyHNuVaZJ-k",
-    "FlyLo FM": "Rx-vPKGDShU",
-    "The Lab": "ZeNUqahfeAY",
-    "blonded Los Santos 97.8 FM": "u3ltZmI5ntw",
-    "Los Santos Underground Radio": "AMZ9L9C_4Xg",
-    "iFruit Radio": "pco91lu9JbA",
-    "Kult FM 99.1": "d9BWlGP_DJw",
-    "Still Slipping Los Santos": "tMzQ_d1XLcY",
-    "Music Locker Radio": "8qfUxx3W4-Y",
-    "MOTOMAMI Los Santos": "oQq84dPKjd8"
+    "WorldWide FM": "xTpsoTmhdNc",
+    "Channel X": "HHG44PJ0oyo",
+    "Radio Mirror Park": "SDWHIACuuaQ",
+    "Vinewood Boulevard Radio": "5fnGyUc2eFs",
+    "Soulwax FM": "EhsQZl8BFz8",
+    "FlyLo FM": "3P-ux63rHkU",
+    "The Lab": "Xy75nA56vcc",
+    "blonded Los Santos 97.8 FM": "-tVumJBaTWY",
+    "Los Santos Underground Radio": "I2Xjuz-mnN0",
+    "iFruit Radio": "fpvJaphZ2_g",
+    "Kult FM 99.1": "9cL6IDCtuzs",
+    "Still Slipping Los Santos": "P3qixldzDow",
+    "Music Locker Radio": "dBvMBYbUZFc",
+    "MOTOMAMI Los Santos": "30uA_Hppzpc",
+    "Mojave Radio": "Tn1FPZb3rmw"
   };
 
-  const stations = Object.keys(stationTracks);
+  const stations = Object.keys(stationTracks).filter(s => s !== "Mojave Radio");
 
   // ---------------------------------------------------------------
   // MATHEMATICAL CIRCLE ENGINE
@@ -253,20 +289,43 @@
     node.style.top = y + '%';
     node.textContent = name;
     node.dataset.station = name;
-    node.addEventListener('click', () => selectStation(name, i));
+    node.addEventListener('click', () => selectStation(name));
     wheelNodesEl.appendChild(node);
+  });
+
+  // ---------------------------------------------------------------
+  // EASTER EGG INTERACTION ENGINE
+  // ---------------------------------------------------------------
+  const easterNode = document.getElementById('mojaveNode');
+  easterNode.dataset.station = "Mojave Radio";
+  easterNode.addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    selectStation("Mojave Radio");
+  });
+
+  let clickCount = 0;
+  document.getElementById('centerTrigger').addEventListener('click', () => {
+    if (clickCount >= 10) return; 
+    
+    clickCount++;
+    if (clickCount === 10) {
+      easterNode.classList.add('reveal');
+      document.getElementById('centerStatus').style.color = 'var(--easter-glow)';
+      document.getElementById('centerStatus').textContent = "Signal Found";
+      setTimeout(() => {
+        document.getElementById('centerStatus').style.color = 'var(--active-glow)';
+        document.getElementById('centerStatus').textContent = isPlaying ? "Playing" : "Paused";
+      }, 2000);
+    }
   });
 
   // ---------------------------------------------------------------
   // CORE SELECTION MECHANICS
   // ---------------------------------------------------------------
-  let currentStationIndex = 0;
   let isPlaying = false;
   let player;
 
-  function selectStation(name, index) {
-    currentStationIndex = index;
-    
+  function selectStation(name) {
     document.querySelectorAll('.node').forEach(el => el.classList.remove('active'));
     const targetNode = document.querySelector(`.node[data-station="${name}"]`);
     if(targetNode) targetNode.classList.add('active');
@@ -309,7 +368,10 @@
   function setPlayingUI(playing){
     isPlaying = playing;
     document.getElementById('playBtn').innerHTML = playing ? '&#10073;&#10073;' : '&#9658;';
-    document.getElementById('centerStatus').textContent = playing ? "Playing" : "Paused";
+    
+    if (clickCount < 10 || document.getElementById('centerStatus').textContent !== "Signal Found") {
+      document.getElementById('centerStatus').textContent = playing ? "Playing" : "Paused";
+    }
   }
 
   document.getElementById('playBtn').addEventListener('click', () => {
