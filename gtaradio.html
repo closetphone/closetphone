@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radio Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #141414;
+    --node: rgba(255,255,255,0.05);
+    --node-border: rgba(255,255,255,0.12);
+    --node-text: rgba(255,255,255,0.5);
+    --active-glow: #4aa3ff;
+    --text: #f2f2f2;
+    --panel: rgba(0,0,0,0.5);
+    --panel-border: rgba(255,255,255,0.05);
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Oswald', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .app{
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  /* ---------------- FIXED WHEEL LAYOUT ---------------- */
+  .wheel-wrap{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 620px;
+    margin: 0 auto;
+  }
+
+  .wheel-inner{
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+  }
+
+  .center-info{
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 35%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  
+  .center-info .station-name{
+    font-size: clamp(1.1rem, 3.3vw, 1.7rem);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: var(--text);
+  }
+  .center-info .status-msg{
+    font-size: clamp(0.7rem, 2vw, 0.85rem);
+    font-weight: 300;
+    color: var(--active-glow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+    line-height: 1.2;
+  }
+
+  .node{
+    position: absolute;
+    transform: translate(-50%, -50%);
+    /* Hardcoded uniform layout sizes prevent node warping */
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: var(--node);
+    border: 1px solid var(--node-border);
+    color: var(--node-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 8px;
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+  }
+  .node:hover{
+    color: var(--text);
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.08);
+    z-index: 5;
+  }
+  .node.active{
+    color: var(--text);
+    background: rgba(74,163,255,0.1);
+    border: 2px solid var(--active-glow);
+    box-shadow: 0 0 20px rgba(74,163,255,0.4), inset 0 0 8px rgba(74,163,255,0.2);
+    font-weight: 600;
+    z-index: 6;
+  }
+
+  @media (max-width: 640px) {
+    .node { width: 62px; height: 62px; font-size: 7.5px; padding: 4px; }
+  }
+
+  @media (max-width: 480px) {
+    .node { width: 52px; height: 52px; font-size: 6.5px; padding: 2px; }
+  }
+
+  /* ---------------- PLAYER ---------------- */
+  .player{
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .controls{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .ctrl-btn{
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+  .ctrl-btn:hover{ border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
+  .ctrl-btn.primary{ width: 54px; height: 54px; font-size: 18px; border-color: rgba(255,255,255,0.3); }
+
+  .player-frame-wrap{
+    position: relative;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    background: #000;
+  }
+  .player-frame-wrap iframe{
+    display: block;
+    width: 100%;
+    aspect-ratio: 16/9;
+    border: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="wheel-wrap">
+    <div class="wheel-inner" id="wheelNodes">
+      <div class="center-info">
+        <div class="station-name" id="centerStation">Radio Los Santos</div>
+        <div class="status-msg" id="centerStatus">Tuning Station...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="player">
+    <div class="controls">
+      <button class="ctrl-btn" id="prevBtn" title="Previous Station">&#9664;&#9664;</button>
+      <button class="ctrl-btn primary" id="playBtn" title="Play/Pause">&#9658;</button>
+      <button class="ctrl-btn" id="nextBtn" title="Next Station">&#9654;&#9654;</button>
+    </div>
+    <div class="player-frame-wrap">
+      <div id="ytPlayer"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const stationTracks = {
+    "Radio Los Santos": "wK0mC56eI00",
+    "Space 103.2": "VvW4rZ3r-x8",
+    "West Coast Classics": "8p9jI9nCkiY",
+    "Rebel Radio": "6PLPmmfeNd4",
+    "Los Santos Rock Radio": "1f8eZ0oWp4E",
+    "The Lowdown 91.1": "mMfxI3W_LyE",
+    "Blue Ark": "g8H_K-fS_wM",
+    "Non-Stop-Pop FM": "elueA2rofoo",
+    "East Los FM": "ouP9Yz8TEBM",
+    "WorldWide FM": "dX3kIAgYZHY",
+    "Channel X": "cKDK5XnoaUk",
+    "Radio Mirror Park": "KutXyZfeFdY",
+    "Vinewood Boulevard Radio": "4p3sMLwkVIQ",
+    "Soulwax FM": "HyHNuVaZJ-k",
+    "FlyLo FM": "Rx-vPKGDShU",
+    "The Lab": "ZeNUqahfeAY",
+    "blonded Los Santos 97.8 FM": "u3ltZmI5ntw",
+    "Los Santos Underground Radio": "AMZ9L9C_4Xg",
+    "iFruit Radio": "pco91lu9JbA",
+    "Kult FM 99.1": "d9BWlGP_DJw",
+    "Still Slipping Los Santos": "tMzQ_d1XLcY",
+    "Music Locker Radio": "8qfUxx3W4-Y",
+    "MOTOMAMI Los Santos": "oQq84dPKjd8"
+  };
+
+  const stations = Object.keys(stationTracks);
+
+  // ---------------------------------------------------------------
+  // MATHEMATICAL CIRCLE ENGINE
+  // ---------------------------------------------------------------
+  const wheelNodesEl = document.getElementById('wheelNodes');
+  const n = stations.length;
+  const radius = 42; // Stable radial offset percentage
+
+  stations.forEach((name, i) => {
+    const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+    
+    const x = 50 + radius * Math.cos(angle);
+    const y = 50 + radius * Math.sin(angle);
+
+    const node = document.createElement('div');
+    node.className = 'node' + (i === 0 ? ' active' : '');
+    node.style.left = x + '%';
+    node.style.top = y + '%';
+    node.textContent = name;
+    node.dataset.station = name;
+    node.addEventListener('click', () => selectStation(name, i));
+    wheelNodesEl.appendChild(node);
+  });
+
+  // ---------------------------------------------------------------
+  // PLAYER CONTROLS
+  // ---------------------------------------------------------------
+  let currentStationIndex = 0;
+  let isPlaying = false;
+  let player;
+
+  function selectStation(name, index) {
+    currentStationIndex = index;
+    
+    document.querySelectorAll('.node').forEach(el => el.classList.remove('active'));
+    const targetNode = document.querySelector(`.node[data-station="${name}"]`);
+    if(targetNode) targetNode.classList.add('active');
+
+    document.getElementById('centerStation').textContent = name;
+    document.getElementById('centerStatus').textContent = "Playing";
+
+    const videoId = stationTracks[name];
+    if (player && player.loadVideoById && videoId) {
+      player.loadVideoById(videoId);
+    }
+  }
+
+  function nextStation() {
+    const nextIndex = (currentStationIndex + 1) % stations.length;
+    selectStation(stations[nextIndex], nextIndex);
+  }
+
+  function prevStation() {
+    const prevIndex = (currentStationIndex - 1 + stations.length) % stations.length;
+    selectStation(stations[prevIndex], prevIndex);
+  }
+
+  // ---------------------------------------------------------------
+  // YOUTUBE TRACK LOADING FRAMEWORK
+  // ---------------------------------------------------------------
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
+
+  function onYouTubeIframeAPIReady(){
+    const defaultStation = stations[0];
+    player = new YT.Player('ytPlayer', {
+      height: '100%',
+      width: '100%',
+      videoId: stationTracks[defaultStation],
+      playerVars: { 
+        rel: 0,
+        referrerPolicy: 'strict-origin-when-cross-origin'
+      },
+      events: { 'onStateChange': onPlayerStateChange }
+    });
+  }
+  window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+  function onPlayerStateChange(e){
+    if (e.data === YT.PlayerState.PLAYING) setPlayingUI(true);
+    else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) setPlayingUI(false);
+  }
+
+  function setPlayingUI(playing){
+    isPlaying = playing;
+    document.getElementById('playBtn').innerHTML = playing ? '&#10073;&#10073;' : '&#9658;';
+    document.getElementById('centerStatus').textContent = playing ? "Playing" : "Paused";
+  }
+
+  document.getElementById('playBtn').addEventListener('click', () => {
+    if (!player) return;
+    if (isPlaying) player.pauseVideo(); else player.playVideo();
+  });
+  document.getElementById('nextBtn').addEventListener('click', nextStation);
+  document.getElementById('prevBtn').addEventListener('click', prevStation);
+</script>
+
+</body>
+</html>
