@@ -23,6 +23,22 @@
 
   *{ box-sizing: border-box; margin:0; padding:0; }
 
+  .bg-logo{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 160vmax;
+    height: 160vmax;
+    background-image: url('assets/images/gta/logo-transparent.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform: translate(-50%, -50%) rotate(35deg);
+    opacity: 0.1;
+    z-index: -1;
+    pointer-events: none;
+  }
+
   body{
     background: var(--bg);
     color: var(--text);
@@ -102,8 +118,8 @@
   .node{
     position: absolute;
     transform: translate(-50%, -50%);
-    width: 74px;
-    height: 74px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
     background: var(--node);
     border: 1px solid var(--node-border);
@@ -126,8 +142,7 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    border-radius: 50%;
-    padding: 14px;
+    padding: 6px;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.6s ease;
@@ -136,7 +151,7 @@
     opacity: 1;
   }
   .node.active img{
-    padding: 12px;
+    padding: 4px;
   }
   .node:hover{
     color: var(--text);
@@ -184,12 +199,12 @@
   }
 
   @media (max-width: 640px) {
-    .node { width: 62px; height: 62px; font-size: 7.5px; padding: 4px; }
+    .node { width: 58px; height: 58px; font-size: 7.5px; padding: 4px; }
     .node.easter-node.reveal { top: calc(100% + 38px); }
   }
 
   @media (max-width: 480px) {
-    .node { width: 52px; height: 52px; font-size: 6.5px; padding: 2px; }
+    .node { width: 48px; height: 48px; font-size: 6.5px; padding: 2px; }
     .node.easter-node.reveal { top: calc(100% + 32px); }
   }
 
@@ -240,6 +255,8 @@
 </style>
 </head>
 <body>
+
+<div class="bg-logo"></div>
 
 <div class="app">
 
