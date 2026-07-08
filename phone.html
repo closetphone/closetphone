@@ -359,11 +359,21 @@
   }
 
   let actx = null;
+  // Instantiate audio elements early to persist the user execution token
+  let correctAudio = new Audio(AUDIO_CORRECT);
+  let wrongAudio = new Audio(AUDIO_WRONG);
+  let currentAudio = null;
+
   function ensureAudio(){
     if(!actx){
       actx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if(actx.state === 'suspended') actx.resume();
+
+    // Crucial for mobile: network pre-load and prime elements with silent interactions
+    if (correctAudio) { correctAudio.load(); }
+    if (wrongAudio) { wrongAudio.load(); }
+    
     return actx;
   }
 
@@ -417,21 +427,30 @@
       toneNodes = null;
     }
   }
-  function playRemote(url, onPlaying){
-    try{
-      if(currentAudio){
-        try{
-          currentAudio.pause();
-          currentAudio.currentTime = 0;
-        }catch(e){}
+  
+  function playResolvedAudio(type, onPlaying) {
+    try {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
       }
-      currentAudio = new Audio(url);
-      if(onPlaying){
-        currentAudio.addEventListener('playing', onPlaying);
+      
+      currentAudio = (type === 'correct') ? correctAudio : wrongAudio;
+      currentAudio.currentTime = 0;
+
+      if (onPlaying) {
+        // Clear old event listener to prevent stacking toggles
+        const runOnce = () => {
+          onPlaying();
+          currentAudio.removeEventListener('playing', runOnce);
+        };
+        currentAudio.addEventListener('playing', runOnce);
       }
+
       currentAudio.play().catch(()=>{});
-    }catch(e){}
+    } catch(e) {}
   }
+
   function stopAllSounds(){
     stopDialTone();
     if(currentAudio){
@@ -452,7 +471,6 @@
   let animHandle = null;
   let idleTimer = null;
   let settled = false;
-  let currentAudio = null;
   let controlsLocked = false;
   let lockTimer = null;
 
@@ -508,10 +526,10 @@
     if(dialed === VALID_NUMBER){
       setStatus('connected');
       document.title = 'Connected.';
-      playRemote(AUDIO_CORRECT, ()=> tape.classList.add('glow'));
+      playResolvedAudio('correct', () => tape.classList.add('glow'));
     } else {
       setStatus('disconnected');
-      playRemote(AUDIO_WRONG);
+      playResolvedAudio('wrong');
       lockControls(4000);
     }
   }
@@ -523,6 +541,11 @@
       document.title = 'Dial...';
       tape.classList.remove('glow');
     }
+
+    if (dialed.length >= 10) {
+      return;
+    }
+
     const d = DIGITS[i-1];
     dialed += d;
     renderTape();
@@ -532,115 +555,4 @@
   }
 
   function springBack(fromDeg){
-    cancelAnimationFrame(animHandle);
-    const duration = Math.max(180, fromDeg * 3.1);
-    const start = performance.now();
-    let lastTickDeg = fromDeg;
-    function frame(now){
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 2);
-      const deg = fromDeg * (1 - eased);
-      applyRotation(deg);
-      while(lastTickDeg - deg >= STEP * 0.98 && lastTickDeg > 0.5){
-        lastTickDeg -= STEP;
-        tick();
-      }
-      if(t < 1){
-        animHandle = requestAnimationFrame(frame);
-      }else{
-        applyRotation(0);
-        currentRotation = 0;
-      }
-    }
-    animHandle = requestAnimationFrame(frame);
-  }
-
-  function pointerAngleFromEvent(evt){
-    const rect = svg.getBoundingClientRect();
-    const scaleX = 400 / rect.width;
-    const scaleY = 400 / rect.height;
-    const px = (evt.clientX - rect.left) * scaleX;
-    const py = (evt.clientY - rect.top) * scaleY;
-    const dx = px - CX, dy = py - CY;
-    let a = Math.atan2(dx, -dy) * 180 / Math.PI;
-    return norm(a);
-  }
-
-  function onPointerDown(evt){
-    if(!receiverLifted || controlsLocked) return;
-    const idx = parseInt(evt.target.dataset.index, 10);
-    if(!idx) return;
-    evt.preventDefault();
-    ensureAudio();
-    cancelAnimationFrame(animHandle);
-    clearTimeout(idleTimer);
-    activeIndex = idx;
-    currentRotation = 0;
-    prevAngle = pointerAngleFromEvent(evt);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-  }
-
-  function onPointerMove(evt){
-    if(activeIndex === null) return;
-    const maxRot = rotationNeeded(activeIndex);
-    const angleNow = pointerAngleFromEvent(evt);
-    let diff = angleNow - prevAngle;
-    if(diff > 180) diff -= 360;
-    if(diff < -180) diff += 360;
-    currentRotation = Math.min(maxRot, Math.max(0, currentRotation + diff));
-    prevAngle = angleNow;
-    applyRotation(currentRotation);
-  }
-
-  function onPointerUp(){
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-    if(activeIndex === null) return;
-    const rotated = currentRotation;
-    if(rotated >= MIN_REGISTER_DEG){
-      registerDigit(activeIndex);
-    } else {
-      scheduleResolve();
-    }
-    springBack(rotated);
-    activeIndex = null;
-  }
-
-  holesLayer.addEventListener('pointerdown', onPointerDown);
-
-  function resetLine(){
-    dialed = '';
-    settled = false;
-    clearTimeout(idleTimer);
-    renderTape();
-    setStatus('');
-    document.title = 'Dial...';
-    tape.classList.remove('glow');
-  }
-
-  hookBtn.addEventListener('click', ()=>{
-    if(controlsLocked) return;
-    receiverLifted = !receiverLifted;
-    hookBtn.setAttribute('aria-pressed', String(receiverLifted));
-    setDialEnabled(receiverLifted);
-    if(receiverLifted){
-      ensureAudio();
-      startDialTone();
-      resetLine();
-    } else {
-      stopAllSounds();
-      cancelAnimationFrame(animHandle);
-      applyRotation(0);
-      currentRotation = 0;
-      activeIndex = null;
-      resetLine();
-    }
-  });
-
-  renderTape();
-  setDialEnabled(false);
-})();
-</script>
-</body>
-</html>
+    cancel
