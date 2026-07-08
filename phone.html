@@ -355,31 +355,45 @@
     hit.setAttribute('r', HOLE_HIT_R);
     hit.dataset.index = i;
     holesLayer.appendChild(hit);
-
   }
 
   let actx = null;
-  // Instantiate audio elements early to persist the user execution token
-  let correctAudio = new Audio(AUDIO_CORRECT);
-  let wrongAudio = new Audio(AUDIO_WRONG);
+  let correctAudio = null;
+  let wrongAudio = null;
   let currentAudio = null;
 
   function ensureAudio(){
-    if(!actx){
-      actx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if(actx.state === 'suspended') actx.resume();
+    try{
+      if(!actx){
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if(actx && actx.state === 'suspended') {
+        actx.resume();
+      }
 
-    // Crucial for mobile: network pre-load and prime elements with silent interactions
-    if (correctAudio) { correctAudio.load(); }
-    if (wrongAudio) { wrongAudio.load(); }
-    
+      if (!correctAudio) {
+        correctAudio = new Audio(AUDIO_CORRECT);
+      }
+      if (!wrongAudio) {
+        wrongAudio = new Audio(AUDIO_WRONG);
+      }
+      
+      if (correctAudio && typeof correctAudio.load === 'function') {
+        correctAudio.load();
+      }
+      if (wrongAudio && typeof wrongAudio.load === 'function') {
+        wrongAudio.load();
+      }
+    } catch(e) {
+      console.error(e);
+    }
     return actx;
   }
 
   function tick(){
     try{
       const ctx = ensureAudio();
+      if(!ctx) return;
       const dur = 0.045;
       const bufferSize = Math.floor(ctx.sampleRate * dur);
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -408,6 +422,7 @@
   function startDialTone(){
     try{
       const ctx = ensureAudio();
+      if(!ctx) return;
       const g = ctx.createGain();
       g.gain.value = 0.045;
       const o1 = ctx.createOscillator(); o1.frequency.value = 350; o1.type='sine';
@@ -420,9 +435,11 @@
   function stopDialTone(){
     if(toneNodes){
       try{
-        toneNodes.g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.25);
-        toneNodes.o1.stop(actx.currentTime + 0.3);
-        toneNodes.o2.stop(actx.currentTime + 0.3);
+        if (actx) {
+          toneNodes.g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.25);
+          toneNodes.o1.stop(actx.currentTime + 0.3);
+          toneNodes.o2.stop(actx.currentTime + 0.3);
+        }
       }catch(e){}
       toneNodes = null;
     }
@@ -436,10 +453,11 @@
       }
       
       currentAudio = (type === 'correct') ? correctAudio : wrongAudio;
+      if (!currentAudio) return;
+
       currentAudio.currentTime = 0;
 
       if (onPlaying) {
-        // Clear old event listener to prevent stacking toggles
         const runOnce = () => {
           onPlaying();
           currentAudio.removeEventListener('playing', runOnce);
@@ -543,6 +561,7 @@
     }
 
     if (dialed.length >= 10) {
+      scheduleResolve();
       return;
     }
 
@@ -555,4 +574,115 @@
   }
 
   function springBack(fromDeg){
-    cancel
+    cancelAnimationFrame(animHandle);
+    const duration = Math.max(180, fromDeg * 3.1);
+    const start = performance.now();
+    let lastTickDeg = fromDeg;
+    function frame(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 2);
+      const deg = fromDeg * (1 - eased);
+      applyRotation(deg);
+      while(lastTickDeg - deg >= STEP * 0.98 && lastTickDeg > 0.5){
+        lastTickDeg -= STEP;
+        tick();
+      }
+      if(t < 1){
+        animHandle = requestAnimationFrame(frame);
+      }else{
+        applyRotation(0);
+        currentRotation = 0;
+      }
+    }
+    animHandle = requestAnimationFrame(frame);
+  }
+
+  function pointerAngleFromEvent(evt){
+    const rect = svg.getBoundingClientRect();
+    const scaleX = 400 / rect.width;
+    const scaleY = 400 / rect.height;
+    const px = (evt.clientX - rect.left) * scaleX;
+    const py = (evt.clientY - rect.top) * scaleY;
+    const dx = px - CX, dy = py - CY;
+    let a = Math.atan2(dx, -dy) * 180 / Math.PI;
+    return norm(a);
+  }
+
+  function onPointerDown(evt){
+    if(!receiverLifted || controlsLocked) return;
+    const idx = parseInt(evt.target.dataset.index, 10);
+    if(!idx) return;
+    evt.preventDefault();
+    ensureAudio(); 
+    cancelAnimationFrame(animHandle);
+    clearTimeout(idleTimer);
+    activeIndex = idx;
+    currentRotation = 0;
+    prevAngle = pointerAngleFromEvent(evt);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  }
+
+  function onPointerMove(evt){
+    if(activeIndex === null) return;
+    const maxRot = rotationNeeded(activeIndex);
+    const angleNow = pointerAngleFromEvent(evt);
+    let diff = angleNow - prevAngle;
+    if(diff > 180) diff -= 360;
+    if(diff < -180) diff += 360;
+    currentRotation = Math.min(maxRot, Math.max(0, currentRotation + diff));
+    prevAngle = angleNow;
+    applyRotation(currentRotation);
+  }
+
+  function onPointerUp(){
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    if(activeIndex === null) return;
+    const rotated = currentRotation;
+    if(rotated >= MIN_REGISTER_DEG){
+      registerDigit(activeIndex);
+    } else {
+      scheduleResolve();
+    }
+    springBack(rotated);
+    activeIndex = null;
+  }
+
+  holesLayer.addEventListener('pointerdown', onPointerDown);
+
+  function resetLine(){
+    dialed = '';
+    settled = false;
+    clearTimeout(idleTimer);
+    renderTape();
+    setStatus('');
+    document.title = 'Dial...';
+    tape.classList.remove('glow');
+  }
+
+  hookBtn.addEventListener('click', ()=>{
+    if(controlsLocked) return;
+    receiverLifted = !receiverLifted;
+    hookBtn.setAttribute('aria-pressed', String(receiverLifted));
+    setDialEnabled(receiverLifted);
+    if(receiverLifted){
+      ensureAudio(); 
+      startDialTone();
+      resetLine();
+    } else {
+      stopAllSounds();
+      cancelAnimationFrame(animHandle);
+      applyRotation(0);
+      currentRotation = 0;
+      activeIndex = null;
+      resetLine();
+    }
+  });
+
+  renderTape();
+  setDialEnabled(false);
+})();
+</script>
+</body>
+</html>
