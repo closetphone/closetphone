@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dial...</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --body-dark:#121212;
+    --body-dark-hi:#232323;
+    --wheel:#181818;
+    --metal:#6e6e6e;
+    --metal-light:#cfcfcf;
+    --metal-dark:#2b2b2b;
+    --text-light:#f2f2f2;
+    --text-dark:#111111;
+    --glow:#ffffff;
+    --paper:#eaeaea;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:#000000;
+    color:var(--text-light);
+    font-family:'Work Sans', sans-serif;
+    overflow-x:hidden;
+  }
+
+  .stage{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:5vh 5vw;
+    gap:clamp(20px, 3.5vh, 36px);
+  }
+
+  .status-line{
+    font-family:'Special Elite', monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    color:var(--glow);
+    min-height:16px;
+    text-align:center;
+    opacity:0.75;
+  }
+
+  .tape-wrap{
+    position:relative;
+    width:min(520px, 88vw);
+  }
+  .tape{
+    display:flex;
+    gap:6px;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+    min-height:56px;
+    padding:10px 14px;
+    background:linear-gradient(180deg, #f6f6f6 0%, var(--paper) 100%);
+    border-radius:3px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.35) inset,
+      0 10px 24px rgba(0,0,0,0.55),
+      0 0 0 1px rgba(0,0,0,0.4);
+    position:relative;
+  }
+  .tape::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image: repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 14px);
+    border-radius:3px;
+    pointer-events:none;
+    opacity:0.4;
+  }
+  .digit-chip{
+    font-family:'Special Elite', monospace;
+    font-size:22px;
+    color:var(--text-dark);
+    background:rgba(255,255,255,0.5);
+    border:1px solid rgba(0,0,0,0.25);
+    border-radius:2px;
+    width:30px;
+    height:38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    animation:punch .18s ease-out;
+    box-shadow:0 1px 0 rgba(255,255,255,0.6) inset;
+    transition:background .4s ease, color .4s ease, box-shadow .4s ease;
+  }
+  .tape.glow .digit-chip{
+    background:#000000;
+    color:#ffffff;
+    box-shadow:0 0 8px 2px rgba(255,255,255,0.85), 0 0 18px rgba(255,255,255,0.5);
+  }
+  .digit-dash{
+    font-family:'Special Elite', monospace;
+    font-size:20px;
+    color:var(--text-dark);
+    opacity:0.45;
+    padding:0 2px;
+  }
+  @keyframes punch{
+    from{ transform:translateY(-6px) scale(0.85); opacity:0; }
+    to{ transform:translateY(0) scale(1); opacity:1; }
+  }
+  .tape-placeholder{
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    color:rgba(0,0,0,0.4);
+    align-self:center;
+    letter-spacing:0.06em;
+  }
+
+  .phone-wrap{
+    position:relative;
+    width:min(620px, 92vw);
+    aspect-ratio:1/1;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 35% 30%, var(--body-dark-hi), var(--body-dark) 60%, #000000 100%);
+    box-shadow:
+      0 40px 80px rgba(0,0,0,0.75),
+      0 2px 0 rgba(255,255,255,0.03) inset,
+      0 0 0 10px rgba(0,0,0,0.4),
+      0 0 0 12px var(--metal-dark);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  svg.dial{
+    width:88%;
+    height:88%;
+    overflow:visible;
+    touch-action:none;
+  }
+
+  .rim{ fill:none; stroke:var(--metal); stroke-width:3; opacity:0.7; }
+  .rim-hi{ fill:none; stroke:var(--metal-light); stroke-width:1; opacity:0.5; }
+
+  .number-label{
+    font-family:'Special Elite', monospace;
+    fill:var(--text-light);
+    font-size:22px;
+    text-anchor:middle;
+    dominant-baseline:central;
+    opacity:0.88;
+    pointer-events:none;
+    user-select:none;
+  }
+
+  .wheel-disc{
+    fill:var(--wheel);
+    stroke:var(--metal-dark);
+    stroke-width:1.5;
+  }
+
+  .hole-visible{
+    fill:#000000;
+    stroke:rgba(0,0,0,0.6);
+    stroke-width:1;
+  }
+
+  .hole-hit{
+    fill:transparent;
+    cursor:grab;
+  }
+  .hole-hit:active{ cursor:grabbing; }
+
+  .dial-group.disabled .hole-hit{ cursor:not-allowed; pointer-events:none; }
+  .dial-group.disabled{ filter:grayscale(0.6) brightness(0.7); }
+
+  .hub{
+    fill:url(#hubGradient);
+    stroke:var(--metal-dark);
+    stroke-width:1.5;
+  }
+
+  .stop-bracket{
+    fill:var(--metal);
+    stroke:var(--metal-dark);
+    stroke-width:1;
+  }
+
+  .hook-toggle{
+    background:none;
+    border:none;
+    padding:8px;
+    cursor:pointer;
+    width:110px;
+    height:86px;
+  }
+  .hook-toggle:focus-visible{
+    outline:2px solid var(--glow);
+    outline-offset:4px;
+    border-radius:8px;
+  }
+  .hook-svg{ width:100%; height:100%; overflow:visible; }
+
+  .cradle-prong{
+    fill:var(--metal-dark);
+  }
+  .cradle-base{
+    fill:var(--body-dark-hi);
+    stroke:var(--metal-dark);
+    stroke-width:1;
+  }
+
+  .handset{
+    transform-origin:50px 40px;
+    transform-box:fill-box;
+    transition:transform .4s cubic-bezier(.34,1.5,.64,1), filter .4s ease;
+    transform:translate(0,0) rotate(0deg);
+  }
+  .handset-body{
+    fill:url(#handsetGradient);
+    stroke:var(--metal-dark);
+    stroke-width:1;
+  }
+  .hook-toggle[aria-pressed="true"] .handset{
+    transform:translate(-4px,-16px) rotate(-30deg);
+    filter:drop-shadow(0 0 10px var(--glow)) drop-shadow(0 0 22px rgba(255,255,255,0.35));
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <p class="status-line" id="statusLine">&nbsp;</p>
+
+  <div class="tape-wrap">
+    <div class="tape" id="tape">
+      <span class="tape-placeholder" id="tapePlaceholder">&nbsp;</span>
+    </div>
+  </div>
+
+  <div class="phone-wrap">
+    <svg class="dial" viewBox="0 0 400 400" id="dialSvg">
+      <defs>
+        <radialGradient id="hubGradient" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#e0e0e0"/>
+          <stop offset="55%" stop-color="#8a8a8a"/>
+          <stop offset="100%" stop-color="#2a2a2a"/>
+        </radialGradient>
+      </defs>
+      <circle class="rim" cx="200" cy="200" r="188"/>
+      <circle class="rim-hi" cx="200" cy="200" r="182"/>
+      <g id="numberLayer"></g>
+      <g id="stopLayer"></g>
+      <g id="dialGroup" class="dial-group disabled">
+        <circle class="wheel-disc" cx="200" cy="200" r="148"/>
+        <g id="holesLayer"></g>
+      </g>
+      <circle class="hub" cx="200" cy="200" r="24"/>
+    </svg>
+  </div>
+
+  <button class="hook-toggle" id="hookBtn" aria-pressed="false" aria-label="Lift or replace the receiver">
+    <svg class="hook-svg" viewBox="0 0 100 80">
+      <defs>
+        <linearGradient id="handsetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#e0e0e0"/>
+          <stop offset="50%" stop-color="#8a8a8a"/>
+          <stop offset="100%" stop-color="#2a2a2a"/>
+        </linearGradient>
+      </defs>
+      <rect class="cradle-base" x="20" y="58" width="60" height="10" rx="3"/>
+      <rect class="cradle-prong" x="28" y="46" width="8" height="16" rx="2"/>
+      <rect class="cradle-prong" x="64" y="46" width="8" height="16" rx="2"/>
+      <g class="handset">
+        <rect class="handset-body" x="20" y="35" width="60" height="10" rx="5"/>
+        <circle class="handset-body" cx="18" cy="40" r="13"/>
+        <circle class="handset-body" cx="82" cy="40" r="13"/>
+      </g>
+    </svg>
+  </button>
+</div>
+
+<script>
+(function(){
+  const CX = 200, CY = 200;
+  const STOP_ANGLE = 20;
+  const STEP = 32;
+  const NUMBER_RING_R = 164;
+  const HOLE_RING_R = 108;
+  const HOLE_R = 20;
+  const HOLE_HIT_R = 30;
+  const STOP_R = 170;
+  const DIGITS = ['1','2','3','4','5','6','7','8','9','0'];
+  const MIN_REGISTER_DEG = 12;
+  const IDLE_RESOLVE_MS = 4000;
+  const VALID_NUMBER = '062014';
+  const AUDIO_CORRECT = 'https://www.closetphone.com/assets/audio/correct.mp3';
+  const AUDIO_WRONG = 'https://www.closetphone.com/assets/audio/wrong.mp3';
+
+  function norm(a){ a = a % 360; if(a < 0) a += 360; return a; }
+  function toXY(angleDeg, r){
+    const rad = angleDeg * Math.PI / 180;
+    return { x: CX + r * Math.sin(rad), y: CY - r * Math.cos(rad) };
+  }
+  function restAngle(i){ return norm(STOP_ANGLE - i * STEP); }
+  function rotationNeeded(i){ return i * STEP; }
+
+  const svg = document.getElementById('dialSvg');
+  const numberLayer = document.getElementById('numberLayer');
+  const stopLayer = document.getElementById('stopLayer');
+  const holesLayer = document.getElementById('holesLayer');
+  const dialGroup = document.getElementById('dialGroup');
+
+  for(let i = 1; i <= 10; i++){
+    const ang = restAngle(i);
+    const pos = toXY(ang, NUMBER_RING_R);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('class','number-label');
+    t.setAttribute('x', pos.x.toFixed(2));
+    t.setAttribute('y', pos.y.toFixed(2));
+    t.textContent = DIGITS[i-1];
+    numberLayer.appendChild(t);
+  }
+
+  const stopPos = toXY(STOP_ANGLE, STOP_R);
+  const stopWedge = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  stopWedge.setAttribute('class','stop-bracket');
+  stopWedge.setAttribute('x', (stopPos.x - 6).toFixed(2));
+  stopWedge.setAttribute('y', (stopPos.y - 14).toFixed(2));
+  stopWedge.setAttribute('width', 12);
+  stopWedge.setAttribute('height', 28);
+  stopWedge.setAttribute('rx', 3);
+  stopWedge.setAttribute('transform', `rotate(${STOP_ANGLE} ${stopPos.x.toFixed(2)} ${stopPos.y.toFixed(2)})`);
+  stopLayer.appendChild(stopWedge);
+
+  for(let i = 1; i <= 10; i++){
+    const ang = restAngle(i);
+    const pos = toXY(ang, HOLE_RING_R);
+    const visible = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    visible.setAttribute('class','hole-visible');
+    visible.setAttribute('cx', pos.x.toFixed(2));
+    visible.setAttribute('cy', pos.y.toFixed(2));
+    visible.setAttribute('r', HOLE_R);
+    holesLayer.appendChild(visible);
+
+    const hit = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    hit.setAttribute('class','hole-hit');
+    hit.setAttribute('cx', pos.x.toFixed(2));
+    hit.setAttribute('cy', pos.y.toFixed(2));
+    hit.setAttribute('r', HOLE_HIT_R);
+    hit.dataset.index = i;
+    holesLayer.appendChild(hit);
+
+  }
+
+  let actx = null;
+  function ensureAudio(){
+    if(!actx){
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+
+  function tick(){
+    try{
+      const ctx = ensureAudio();
+      const dur = 0.045;
+      const bufferSize = Math.floor(ctx.sampleRate * dur);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i = 0; i < bufferSize; i++){
+        const decay = Math.pow(1 - i / bufferSize, 2.2);
+        data[i] = (Math.random() * 2 - 1) * decay;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const bandpass = ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = 1100 + Math.random() * 900;
+      bandpass.Q.value = 0.9;
+      const lowcut = ctx.createBiquadFilter();
+      lowcut.type = 'highpass';
+      lowcut.frequency.value = 500;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.9;
+      noise.connect(lowcut).connect(bandpass).connect(gain).connect(ctx.destination);
+      noise.start();
+    }catch(e){}
+  }
+
+  let toneNodes = null;
+  function startDialTone(){
+    try{
+      const ctx = ensureAudio();
+      const g = ctx.createGain();
+      g.gain.value = 0.045;
+      const o1 = ctx.createOscillator(); o1.frequency.value = 350; o1.type='sine';
+      const o2 = ctx.createOscillator(); o2.frequency.value = 440; o2.type='sine';
+      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+      o1.start(); o2.start();
+      toneNodes = { o1, o2, g };
+    }catch(e){}
+  }
+  function stopDialTone(){
+    if(toneNodes){
+      try{
+        toneNodes.g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.25);
+        toneNodes.o1.stop(actx.currentTime + 0.3);
+        toneNodes.o2.stop(actx.currentTime + 0.3);
+      }catch(e){}
+      toneNodes = null;
+    }
+  }
+  function playRemote(url, onPlaying){
+    try{
+      if(currentAudio){
+        try{
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }catch(e){}
+      }
+      currentAudio = new Audio(url);
+      if(onPlaying){
+        currentAudio.addEventListener('playing', onPlaying);
+      }
+      currentAudio.play().catch(()=>{});
+    }catch(e){}
+  }
+  function stopAllSounds(){
+    stopDialTone();
+    if(currentAudio){
+      try{
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }catch(e){}
+      currentAudio = null;
+    }
+    tape.classList.remove('glow');
+  }
+
+  let receiverLifted = false;
+  let dialed = '';
+  let currentRotation = 0;
+  let activeIndex = null;
+  let prevAngle = 0;
+  let animHandle = null;
+  let idleTimer = null;
+  let settled = false;
+  let currentAudio = null;
+  let controlsLocked = false;
+  let lockTimer = null;
+
+  const statusLine = document.getElementById('statusLine');
+  const tape = document.getElementById('tape');
+  const tapePlaceholder = document.getElementById('tapePlaceholder');
+  const hookBtn = document.getElementById('hookBtn');
+
+  function setStatus(text){ statusLine.textContent = text || '\u00A0'; }
+
+  function renderTape(){
+    tape.innerHTML = '';
+    if(dialed.length === 0){
+      tape.appendChild(tapePlaceholder);
+      return;
+    }
+    dialed.split('').forEach((d, idx) => {
+      if(idx > 0 && idx % 2 === 0){
+        const dash = document.createElement('span');
+        dash.className = 'digit-dash';
+        dash.textContent = '\u2013';
+        tape.appendChild(dash);
+      }
+      const chip = document.createElement('span');
+      chip.className = 'digit-chip';
+      chip.textContent = d;
+      tape.appendChild(chip);
+    });
+  }
+
+  function applyRotation(deg){
+    dialGroup.setAttribute('transform', `rotate(${deg.toFixed(2)} ${CX} ${CY})`);
+  }
+
+  function setDialEnabled(enabled){
+    dialGroup.classList.toggle('disabled', !enabled);
+  }
+
+  function scheduleResolve(){
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(resolveCall, IDLE_RESOLVE_MS);
+  }
+
+  function lockControls(ms){
+    controlsLocked = true;
+    clearTimeout(lockTimer);
+    lockTimer = setTimeout(()=>{ controlsLocked = false; }, ms);
+  }
+
+  function resolveCall(){
+    if(dialed.length === 0) return;
+    settled = true;
+    if(dialed === VALID_NUMBER){
+      setStatus('connected');
+      document.title = 'Connected.';
+      playRemote(AUDIO_CORRECT, ()=> tape.classList.add('glow'));
+    } else {
+      setStatus('disconnected');
+      playRemote(AUDIO_WRONG);
+      lockControls(4000);
+    }
+  }
+
+  function registerDigit(i){
+    if(settled){
+      dialed = '';
+      settled = false;
+      document.title = 'Dial...';
+      tape.classList.remove('glow');
+    }
+    const d = DIGITS[i-1];
+    dialed += d;
+    renderTape();
+    if(dialed.length === 1) stopDialTone();
+    setStatus('');
+    scheduleResolve();
+  }
+
+  function springBack(fromDeg){
+    cancelAnimationFrame(animHandle);
+    const duration = Math.max(180, fromDeg * 3.1);
+    const start = performance.now();
+    let lastTickDeg = fromDeg;
+    function frame(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 2);
+      const deg = fromDeg * (1 - eased);
+      applyRotation(deg);
+      while(lastTickDeg - deg >= STEP * 0.98 && lastTickDeg > 0.5){
+        lastTickDeg -= STEP;
+        tick();
+      }
+      if(t < 1){
+        animHandle = requestAnimationFrame(frame);
+      }else{
+        applyRotation(0);
+        currentRotation = 0;
+      }
+    }
+    animHandle = requestAnimationFrame(frame);
+  }
+
+  function pointerAngleFromEvent(evt){
+    const rect = svg.getBoundingClientRect();
+    const scaleX = 400 / rect.width;
+    const scaleY = 400 / rect.height;
+    const px = (evt.clientX - rect.left) * scaleX;
+    const py = (evt.clientY - rect.top) * scaleY;
+    const dx = px - CX, dy = py - CY;
+    let a = Math.atan2(dx, -dy) * 180 / Math.PI;
+    return norm(a);
+  }
+
+  function onPointerDown(evt){
+    if(!receiverLifted || controlsLocked) return;
+    const idx = parseInt(evt.target.dataset.index, 10);
+    if(!idx) return;
+    evt.preventDefault();
+    ensureAudio();
+    cancelAnimationFrame(animHandle);
+    clearTimeout(idleTimer);
+    activeIndex = idx;
+    currentRotation = 0;
+    prevAngle = pointerAngleFromEvent(evt);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  }
+
+  function onPointerMove(evt){
+    if(activeIndex === null) return;
+    const maxRot = rotationNeeded(activeIndex);
+    const angleNow = pointerAngleFromEvent(evt);
+    let diff = angleNow - prevAngle;
+    if(diff > 180) diff -= 360;
+    if(diff < -180) diff += 360;
+    currentRotation = Math.min(maxRot, Math.max(0, currentRotation + diff));
+    prevAngle = angleNow;
+    applyRotation(currentRotation);
+  }
+
+  function onPointerUp(){
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    if(activeIndex === null) return;
+    const rotated = currentRotation;
+    if(rotated >= MIN_REGISTER_DEG){
+      registerDigit(activeIndex);
+    } else {
+      scheduleResolve();
+    }
+    springBack(rotated);
+    activeIndex = null;
+  }
+
+  holesLayer.addEventListener('pointerdown', onPointerDown);
+
+  function resetLine(){
+    dialed = '';
+    settled = false;
+    clearTimeout(idleTimer);
+    renderTape();
+    setStatus('');
+    document.title = 'Dial...';
+    tape.classList.remove('glow');
+  }
+
+  hookBtn.addEventListener('click', ()=>{
+    if(controlsLocked) return;
+    receiverLifted = !receiverLifted;
+    hookBtn.setAttribute('aria-pressed', String(receiverLifted));
+    setDialEnabled(receiverLifted);
+    if(receiverLifted){
+      ensureAudio();
+      startDialTone();
+      resetLine();
+    } else {
+      stopAllSounds();
+      cancelAnimationFrame(animHandle);
+      applyRotation(0);
+      currentRotation = 0;
+      activeIndex = null;
+      resetLine();
+    }
+  });
+
+  renderTape();
+  setDialEnabled(false);
+})();
+</script>
+</body>
+</html>
