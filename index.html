@@ -91,6 +91,12 @@
             transition: opacity 5s linear;
             will-change: opacity;
             animation: vcr-static 0.08s infinite;
+            pointer-events: none; /* becomes 'auto' via JS once fully revealed */
+        }
+
+        #phone-number.is-clickable {
+            pointer-events: auto;
+            cursor: pointer;
         }
 
         @keyframes vcr-static {
@@ -171,6 +177,8 @@
         };
         // Use new intro sound
         const INTRO_SOUND = 'assets/audio/housepet.mp3';
+        // Where clicking the revealed phone number should send visitors
+        const NEXT_PAGE_URL = 'phone.html';
 
         const stage = document.getElementById('stage');
         let posterImg = null;
@@ -284,6 +292,12 @@
             }
         }
 
+        function goToNextPage(e) {
+            // Don't let this bubble into anything on the stage listening for clicks
+            e.stopPropagation();
+            window.location.href = NEXT_PAGE_URL;
+        }
+
         function startSequence() {
             if (started) return;
             started = true;
@@ -305,8 +319,26 @@
             if (phoneNumber) {
                 // Ensure the element is in its initial state
                 phoneNumber.style.opacity = '0';
+                phoneNumber.classList.remove('is-clickable');
                 // Force browser to acknowledge the initial state
                 void phoneNumber.offsetWidth;
+
+                // Once fully revealed, make it clickable and link to the next page
+                const onRevealed = () => {
+                    phoneNumber.removeEventListener('transitionend', onRevealed);
+                    phoneNumber.classList.add('is-clickable');
+                    phoneNumber.setAttribute('role', 'link');
+                    phoneNumber.setAttribute('tabindex', '0');
+                    phoneNumber.addEventListener('click', goToNextPage);
+                    phoneNumber.addEventListener('keydown', (e) => {
+                        if (e.code === 'Enter' || e.code === 'Space') {
+                            e.preventDefault();
+                            goToNextPage(e);
+                        }
+                    });
+                };
+                phoneNumber.addEventListener('transitionend', onRevealed);
+
                 // Trigger the fade-in
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
